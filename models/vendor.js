@@ -3,7 +3,6 @@ const Schema = mongoose.Schema
 
 const vendorSchema = new Schema({
     name: String,
-    logo: String,
     country_id: String,
 })
 

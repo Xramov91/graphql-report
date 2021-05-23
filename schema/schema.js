@@ -1,25 +1,13 @@
 const graphql = require('graphql')
-var { GraphQLSchema } = require('graphql');
-const {GraphQLObjectType, GraphQLString, GraphQLID, GraphQLList} = graphql
+const {GraphQLSchema} = require('graphql');
+const {GraphQLObjectType, GraphQLString, GraphQLList} = graphql
 
-const Addresses = require('../models/address')
 const Categories = require('../models/category')
 const Countries = require('../models/country')
-const Customers = require('../models/customer')
-const Orders = require('../models/order')
-const Items = require('../models/item')
 const Products = require('../models/product')
 const Vendors = require('../models/vendor')
 
-const AddressType = new GraphQLObjectType({
-    name: 'Address',
-    fields: () => ({
-        id: {type: GraphQLString},
-        city: {type: GraphQLString},
-        street: {type: GraphQLString},
-        house: {type: GraphQLString},
-    })
-})
+// Описание моделей
 const CategoryType = new GraphQLObjectType({
     name: 'Category',
     fields: () => ({
@@ -35,25 +23,12 @@ const CountryType = new GraphQLObjectType({
         capital: {type: GraphQLString},
     })
 })
-const CustomerType = new GraphQLObjectType({
-    name: 'Customer',
-    fields: () => ({
-        id: {type: GraphQLString},
-        name: {type: GraphQLString},
-        address: {
-            type: AddressType,
-            resolve(parent, args) {
-                return Addresses.findById(parent.address_id)
-            }
-        }
-    })
-})
 const VendorType = new GraphQLObjectType({
     name: 'Vendor',
     fields: () => ({
         id: {type: GraphQLString},
         name: {type: GraphQLString},
-        logo: {type: GraphQLString},
+        country_id: {type: GraphQLString},
         country: {
             type: CountryType,
             resolve(parent, args) {
@@ -81,106 +56,117 @@ const ProductType = new GraphQLObjectType({
         },
     })
 })
-const ItemType = new GraphQLObjectType({
-    name: 'Item',
-    fields: () => ({
-        id: {type: GraphQLString},
-        order: {
-            type: OrderType,
-            resolve(parent, args) {
-                return Orders.findById(parent.order_id)
-            }
-        },
-        product: {
-            type: ProductType,
-            resolve(parent, args) {
-                return Products.findById(parent.product_id)
-            }
-        },
-    })
-})
-const OrderType = new GraphQLObjectType({
-    name: 'Order',
-    fields: () => ({
-        id: {type: GraphQLString},
-        number: {type: GraphQLString},
-        customer: {
-            type: CustomerType,
-            resolve(parent, args) {
-                return Customers.findById(parent.customer_id)
-            }
-        },
-        items: {
-            type: GraphQLList(ItemType),
-            resolve(parent, args) {
-                return [Items.findById('6088a0e1c0c1e44bb7cd0d67')]
-            }
-        }
-    })
-})
 
-
+// Описываем входящие запросы
 const Query = new GraphQLObjectType({
     name: 'Query',
     fields: {
-        order: {
-            type: OrderType,
+        // Модель "Категория"
+        category: {
+            type: CategoryType,
             args: {id: {type: GraphQLString}},
             resolve(parent, args) {
-                return Orders.findById(args.id)
+                return Categories.findById(args.id)
             }
         },
-        orders: {
-            type: GraphQLList(OrderType),
-            resolve(parent, args) {
-                return Orders.find({})
-            }
-        },
-        items: {
-            type: GraphQLList(ItemType),
-            resolve(parent, args) {
-                return Items.find({})
-            }
-        },
-        item: {
-            type: ItemType,
-            args: {id: {type: GraphQLString}},
-            resolve(parent, args) {
-                return Items.findById(args.id)
-            }
-        },
-    }
-})
-const Mutation = new GraphQLObjectType({
-    name: 'Mutation',
-    fields: {
-        addCountry: {
-            type: CountryType,
+        categories: {
+            type: GraphQLList(CategoryType),
             args: {
+                id: {type: GraphQLString},
                 name: {type: GraphQLString},
-                capital: {type: GraphQLString}
             },
             resolve(parent, args) {
-                const country = new Countries({
-                    name: args.name,
-                    capital: args.capital
-                })
-                return country.save()
+                if (args.id) {
+                    return [Categories.findById(args.id)]
+                } else if (args.name) {
+                    return Categories.find({name: args.name})
+                } else {
+                    return Categories.find({})
+                }
             }
         },
-        removeCountry: {
-            type: CountryType,
+        // Модель "Страна"
+        country: {
+            type: CategoryType,
+            args: {id: {type: GraphQLString}},
+            resolve(parent, args) {
+                return Countries.findById(args.id)
+            }
+        },
+        countries: {
+            type: GraphQLList(CountryType),
             args: {
-                id: {type: GraphQLID},
+                id: {type: GraphQLString},
+                name: {type: GraphQLString},
+                capital: {type: GraphQLString},
             },
             resolve(parent, args) {
-                return Countries.findByIdAndRemove(args.id)
+                if (args.id) {
+                    return [Countries.findById(args.id)]
+                } else if (args.name) {
+                    return Countries.find({name: args.name})
+                } else {
+                    return Countries.find({})
+                }
             }
-        }
+        },
+        // Модель "Производитель"
+        vendor: {
+            type: VendorType,
+            args: {id: {type: GraphQLString}},
+            resolve(parent, args) {
+                return Vendors.findById(args.id)
+            }
+        },
+        vendors: {
+            type: GraphQLList(VendorType),
+            args: {
+                id: {type: GraphQLString},
+                name: {type: GraphQLString},
+                country_id: {type: GraphQLString},
+            },
+            resolve(parent, args) {
+                if (args.id) {
+                    return [Vendors.findById(args.id)]
+                } else if (args.name) {
+                    return Vendors.find({name: args.name})
+                } else if (args.country_id) {
+                    return Vendors.find({country_id: args.country_id})
+                } else {
+                    return Vendors.find({})
+                }
+            }
+        },
+        // Модель "Товар"
+        product: {
+            type: ProductType,
+            args: {id: {type: GraphQLString}},
+            resolve(parent, args) {
+                return Products.findById(args.id)
+            }
+        },
+        products: {
+            type: GraphQLList(ProductType),
+            args: {
+                id: {type: GraphQLString},
+                name: {type: GraphQLString},
+                categoryId: {type: GraphQLString},
+            },
+            resolve(parent, args) {
+                if (args.id) {
+                    return [Products.findById(args.id)]
+                } else if (args.name) {
+                    return Products.find({name: args.name})
+                } else if (args.categoryId) {
+                    return Products.find({categoryId: args.categoryId})
+                } else {
+                    return Products.find({})
+                }
+            }
+        },
     }
 })
 
 module.exports = new GraphQLSchema({
     query: Query,
-    mutation: Mutation,
 })
