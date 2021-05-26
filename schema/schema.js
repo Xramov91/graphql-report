@@ -42,6 +42,8 @@ const ProductType = new GraphQLObjectType({
     fields: () => ({
         id: {type: GraphQLString},
         name: {type: GraphQLString},
+        category_id: {type: GraphQLString},
+        vendor_id: {type: GraphQLString},
         category: {
             type: CategoryType,
             resolve(parent, args) {
@@ -87,7 +89,7 @@ const Query = new GraphQLObjectType({
         },
         // Модель "Страна"
         country: {
-            type: CategoryType,
+            type: CountryType,
             args: {id: {type: GraphQLString}},
             resolve(parent, args) {
                 return Countries.findById(args.id)
@@ -123,15 +125,12 @@ const Query = new GraphQLObjectType({
             args: {
                 id: {type: GraphQLString},
                 name: {type: GraphQLString},
-                country_id: {type: GraphQLString},
             },
             resolve(parent, args) {
                 if (args.id) {
                     return [Vendors.findById(args.id)]
                 } else if (args.name) {
                     return Vendors.find({name: args.name})
-                } else if (args.country_id) {
-                    return Vendors.find({country_id: args.country_id})
                 } else {
                     return Vendors.find({})
                 }
@@ -167,6 +166,51 @@ const Query = new GraphQLObjectType({
     }
 })
 
+const Mutation = new GraphQLObjectType({
+    name: 'Mutation',
+    fields: {
+        addProduct: {
+            type: ProductType,
+            args: {
+                name: {type: GraphQLString},
+                vendorId: {type: GraphQLString},
+                categoryId: {type: GraphQLString},
+            },
+            resolve(parent, args) {
+                const product = new Products({
+                    name: args.name,
+                    vendor_id: args.vendorId,
+                    category_id: args.categoryId
+                })
+                return product.save();
+            }
+        },
+        removeProduct: {
+            type: ProductType,
+            args: {
+                id: {type: GraphQLString},
+            },
+            resolve(parent, args) {
+                return Products.findByIdAndDelete(args.id);
+            }
+        },
+        updateProduct: {
+            type: ProductType,
+            args: {
+                id: {type: GraphQLString},
+                name: {type: GraphQLString},
+            },
+            resolve(parent, args) {
+                return Products.findByIdAndUpdate(args.id,
+                    { $set: {name: args.name} },
+                    {new: true}
+                );
+            }
+        },
+    }
+})
+
 module.exports = new GraphQLSchema({
     query: Query,
+    mutation: Mutation
 })
